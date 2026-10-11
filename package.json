@@ -200,7 +200,39 @@
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
-    ]
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "build",
+          "chore",
+          "ci",
+          "docs",
+          "feat",
+          "fix",
+          "perf",
+          "refactor",
+          "revert",
+          "style",
+          "test",
+          "Fix",
+          "Improved",
+          "New",
+          "Refactor",
+          "Docs",
+          "Tests",
+          "Chore"
+        ]
+      ],
+      "type-case": [
+        0
+      ],
+      "subject-case": [
+        0
+      ]
+    }
   },
   "pnpm": {
     "onlyBuiltDependencies": [

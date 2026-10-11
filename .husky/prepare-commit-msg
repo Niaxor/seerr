@@ -1,2 +1,7 @@
 
+# Commitizen is interactive. Run it only for a plain `git commit` (no -m/-F,
+# merge, squash or amend message source in $2) and only when a terminal is
+# attached, so scripted and agent commits still run commit-msg/pre-commit.
+[ -z "$2" ] || exit 0
+(exec < /dev/tty) 2>/dev/null || exit 0
 exec < /dev/tty && npx cz --hook || true
