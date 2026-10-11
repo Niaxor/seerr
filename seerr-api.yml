@@ -7169,6 +7169,76 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/TvResult'
+  /tv/{tvId}/status:
+    get:
+      summary: Get per-episode request status
+      description: |
+        Returns where every requested episode of a series is on its way into the
+        library (searching, not found with a reason, grabbed, downloading with
+        progress and ETA, importing, available, failed), rolled up per season and
+        for the whole request. Built from Sonarr's episode list, queue, running
+        commands and history, plus per-file progress and search outcomes when
+        Sonarr is the fast-start fork (GET /api/v3/faststart/status).
+      tags:
+        - tv
+      parameters:
+        - in: path
+          name: tvId
+          required: true
+          schema:
+            type: number
+            example: 46260
+        - in: query
+          name: is4k
+          schema:
+            type: boolean
+            example: false
+      responses:
+        '200':
+          description: Request status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tmdbId:
+                    type: number
+                  is4k:
+                    type: boolean
+                  mediaStatus:
+                    type: number
+                    nullable: true
+                  phase:
+                    type: string
+                    enum:
+                      [not_requested, awaiting_approval, in_sonarr, unavailable]
+                  source:
+                    type: string
+                    nullable: true
+                    enum: [sonarr, sonarr-faststart, null]
+                  sonarrSeriesId:
+                    type: number
+                    nullable: true
+                  generatedAt:
+                    type: string
+                  refreshSeconds:
+                    type: number
+                  overall:
+                    type: object
+                  seasons:
+                    type: array
+                    items:
+                      type: object
+                  episodes:
+                    type: array
+                    items:
+                      type: object
+                  activity:
+                    type: array
+                    items:
+                      type: object
+                  error:
+                    type: string
   /tv/{tvId}/ratings:
     get:
       summary: Get TV ratings
