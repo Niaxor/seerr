@@ -7,6 +7,7 @@ import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
 import { Watchlist } from '@server/entity/Watchlist';
+import { getSeriesRequestStatus } from '@server/lib/requestStatus';
 import logger from '@server/logger';
 import { mapTvResult } from '@server/models/Search';
 import { mapSeasonWithEpisodes, mapTvDetails } from '@server/models/Tv';
@@ -62,6 +63,34 @@ tvRoutes.get('/:id', async (req, res, next) => {
     return next({
       status: 500,
       message: 'Unable to retrieve series.',
+    });
+  }
+});
+
+/**
+ * Per-episode request status for a series: state, download progress and ETA
+ * per episode, rolled up per season and for the whole request.
+ * Query: is4k=true for the 4K track.
+ */
+tvRoutes.get('/:id/status', async (req, res, next) => {
+  try {
+    const tmdbId = Number(req.params.id);
+    if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
+      return next({ status: 400, message: 'Invalid series id.' });
+    }
+    const is4k = req.query.is4k === 'true';
+    const media = await Media.getMedia(tmdbId, MediaType.TV);
+    const status = await getSeriesRequestStatus(tmdbId, media, is4k);
+    return res.status(200).json(status);
+  } catch (e) {
+    logger.debug('Something went wrong retrieving request status', {
+      label: 'API',
+      errorMessage: e.message,
+      tvId: req.params.id,
+    });
+    return next({
+      status: 500,
+      message: 'Unable to retrieve request status.',
     });
   }
 });

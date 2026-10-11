@@ -162,17 +162,35 @@ class ServarrBase<QueueItemAppendT> extends ExternalAPI {
   };
 
   public getQueue = async (): Promise<(QueueItem & QueueItemAppendT)[]> => {
+    // Sonarr/Radarr page the queue (default pageSize 10, Sonarr.Http
+    // PagingResource). Sonarr returns one record per episode, so a single
+    // season pack alone can exceed the default page. Read every page.
+    const pageSize = 250;
+    const records: (QueueItem & QueueItemAppendT)[] = [];
     try {
-      const response = await this.axios.get<QueueResponse<QueueItemAppendT>>(
-        `/queue`,
-        {
-          params: {
-            includeEpisode: true,
-          },
-        }
-      );
+      for (let page = 1; page <= 40; page++) {
+        const response = await this.axios.get<QueueResponse<QueueItemAppendT>>(
+          `/queue`,
+          {
+            params: {
+              includeEpisode: true,
+              page,
+              pageSize,
+            },
+          }
+        );
 
-      return response.data.records;
+        records.push(...response.data.records);
+
+        if (
+          response.data.records.length < pageSize ||
+          records.length >= response.data.totalRecords
+        ) {
+          break;
+        }
+      }
+
+      return records;
     } catch (e) {
       throw new Error(
         `[${this.apiName}] Failed to retrieve queue: ${e.message}`,

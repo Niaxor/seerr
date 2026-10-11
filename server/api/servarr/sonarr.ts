@@ -1,3 +1,9 @@
+import type {
+  FastStartStatusInput,
+  SonarrCommandInput,
+  SonarrHistoryInput,
+  SonarrQueueInput,
+} from '@server/lib/requestStatus/types';
 import logger from '@server/logger';
 import type { AxiosResponse } from 'axios';
 import ServarrBase from './base';
@@ -27,6 +33,7 @@ interface EpisodeResult {
   monitored: boolean;
   absoluteEpisodeNumber: number;
   unverifiedSceneNumbering: boolean;
+  lastSearchTime?: string | null;
   id: number;
 }
 
@@ -386,6 +393,56 @@ class SonarrAPI extends ServarrBase<{
         seriesId,
       });
       throw new Error('Failed to get episodes', { cause: e });
+    }
+  }
+
+  /**
+   * Unpaged queue for one series, including pending (delayed) releases.
+   * GET /api/v3/queue/details (Sonarr v4 QueueDetailsController).
+   */
+  public async getQueueDetails(seriesId: number): Promise<SonarrQueueInput[]> {
+    const response = await this.axios.get<SonarrQueueInput[]>(
+      '/queue/details',
+      { params: { seriesId, includeEpisode: false } }
+    );
+    return response.data;
+  }
+
+  /** In-memory command list (Sonarr keeps finished commands ~5 minutes). */
+  public async getCommands(): Promise<SonarrCommandInput[]> {
+    const response = await this.axios.get<SonarrCommandInput[]>('/command');
+    return response.data;
+  }
+
+  /** Full history for one series. GET /api/v3/history/series */
+  public async getSeriesHistory(
+    seriesId: number
+  ): Promise<SonarrHistoryInput[]> {
+    const response = await this.axios.get<SonarrHistoryInput[]>(
+      '/history/series',
+      { params: { seriesId } }
+    );
+    return response.data;
+  }
+
+  /**
+   * Per-episode file progress and search outcomes from the fast-start Sonarr
+   * fork. Returns null when the endpoint does not exist (stock Sonarr).
+   */
+  public async getFastStartStatus(
+    seriesId: number
+  ): Promise<FastStartStatusInput | null> {
+    try {
+      const response = await this.axios.get<FastStartStatusInput>(
+        '/faststart/status',
+        { params: { seriesId } }
+      );
+      return response.data;
+    } catch (e) {
+      if (e?.response?.status === 404) {
+        return null;
+      }
+      throw e;
     }
   }
 
