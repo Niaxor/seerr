@@ -28,6 +28,7 @@ import type {
   TmdbUpcomingMoviesResponse,
   TmdbWatchProviderDetails,
   TmdbWatchProviderRegion,
+  TmdbWatchProviders,
 } from './interfaces';
 
 interface SearchOptions {
@@ -105,6 +106,7 @@ interface DiscoverMovieOptions {
   sortBy?: MovieSortOptions;
   watchRegion?: string;
   watchProviders?: string;
+  watchMonetizationTypes?: string;
   certification?: string;
   certificationGte?: string;
   certificationLte?: string;
@@ -131,6 +133,7 @@ interface DiscoverTvOptions {
   sortBy?: TvSortOptions;
   watchRegion?: string;
   watchProviders?: string;
+  watchMonetizationTypes?: string;
   withStatus?: string; // Returning Series: 0 Planned: 1 In Production: 2 Ended: 3 Cancelled: 4 Pilot: 5
   certification?: string;
   certificationGte?: string;
@@ -698,6 +701,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
     voteCountLte,
     watchProviders,
     watchRegion,
+    watchMonetizationTypes,
     certification,
     certificationGte,
     certificationLte,
@@ -750,6 +754,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
           'vote_count.lte': voteCountLte,
           watch_region: watchRegion,
           with_watch_providers: watchProviders,
+          with_watch_monetization_types: watchMonetizationTypes,
           certification: certification,
           'certification.gte': certificationGte,
           'certification.lte': certificationLte,
@@ -785,6 +790,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
     voteCountLte,
     watchProviders,
     watchRegion,
+    watchMonetizationTypes,
     withStatus,
     certification,
     certificationGte,
@@ -837,6 +843,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
           'vote_count.lte': voteCountLte,
           with_watch_providers: watchProviders,
           watch_region: watchRegion,
+          with_watch_monetization_types: watchMonetizationTypes,
           with_status: withStatus,
           certification: certification,
           'certification.gte': certificationGte,
@@ -1488,6 +1495,32 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
     } catch (e) {
       throw new Error(
         `[TMDB] Failed to fetch TV watch providers: ${e.message}`,
+        { cause: e }
+      );
+    }
+  }
+  /**
+   * Per-title watch providers (JustWatch data via TMDB), keyed by region.
+   * Used by provider browse to check availability of titles that come from
+   * sources other than /discover (Top 10 lists, recommendations).
+   */
+  public async getTitleWatchProviders({
+    mediaType,
+    tmdbId,
+  }: {
+    mediaType: 'movie' | 'tv';
+    tmdbId: number;
+  }): Promise<{ [iso_3166_1: string]: TmdbWatchProviders }> {
+    try {
+      const data = await this.get<{
+        id: number;
+        results?: { [iso_3166_1: string]: TmdbWatchProviders };
+      }>(`/${mediaType}/${tmdbId}/watch/providers`, {}, 86400);
+
+      return data.results ?? {};
+    } catch (e) {
+      throw new Error(
+        `[TMDB] Failed to fetch title watch providers: ${e.message}`,
         { cause: e }
       );
     }
